@@ -7,8 +7,11 @@ var resource
 var current_item
 var temp_object_mat
 var tree
+var placing = false
+var parent_node
 
 func _enter_tree():
+	print("Loading placer")
 	dock = preload("res://addons/placer/resources/paintbutton.tscn").instance()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, dock)
 	dock.get_node("Button").connect("pressed", self, "toggle_painting")
@@ -19,32 +22,55 @@ func _enter_tree():
 			tree.connect("cell_selected", self, "file_picked")
 			break
 	temp_object_mat = preload("res://addons/placer/resources/tempobjectmat.tres")
+	change_parent_node()
+	get_editor_interface().get_selection().connect("selection_changed", self, "change_parent_node")
+	
+func change_parent_node():
+	parent_node = get_editor_interface().get_selection().get_selected_nodes()[0]
+	if parent_node == null:
+		parent_node = get_editor_interface().get_edited_scene_root()
+	print(parent_node)
 
 func _exit_tree():
-	remove_control_from_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, dock)
-	dock.free()
+	print("Exiting placer")
+	if current_item != null:
+		current_item.free()
+	if dock != null:
+		remove_control_from_container(CONTAINER_SPATIAL_EDITOR_MENU, dock)
+		dock.free()
 
 func toggle_painting():
 	painting = !painting
 	if !painting:
 		print("Painting toggled off")
 		current_item.free()
+		(dock.get_node("Button") as Button).pressed = false
 	else:
 		print("Painting toggled on")
 		set_up_temp_object()
+		(dock.get_node("Button") as Button).pressed = true
 
 func forward_spatial_gui_input(camera, event):
 	if !painting:
-		return
+		return false
 	if event is InputEventMouseMotion:
-		var ray_origin = camera.project_ray_origin(event.position)
-		var ray_dir = camera.project_ray_normal(event.position)
-		var ray_distance = camera.far
-		var space_state =  get_viewport().world.direct_space_state
-		var hit = space_state.intersect_ray(ray_origin, ray_origin + ray_dir * ray_distance)
-		if !hit.empty():
-			current_item.transform.origin = hit.position
+		if !placing:
+			var ray_origin = camera.project_ray_origin(event.position)
+			var ray_dir = camera.project_ray_normal(event.position)
+			var ray_distance = camera.far
+			var space_state =  get_viewport().world.direct_space_state
+			var hit = space_state.intersect_ray(ray_origin, ray_origin + ray_dir * ray_distance)
+			if !hit.empty():
+				current_item.transform.origin = hit.position
+			return false
+		else:
+			current_item.rotate_object_local(Vector3(0,1,0), event.relative.x / 10)
+			return true
+			
 	elif event is InputEventMouseButton and event.pressed == true and event.button_index == BUTTON_LEFT:
+		placing = true
+	elif event is InputEventMouseButton and event.pressed == false and event.button_index == BUTTON_LEFT:
+		placing = false
 		var undo_redo = get_undo_redo()
 		undo_redo.create_action("Add object")
 		var new_item = resource.instance()
@@ -52,7 +78,19 @@ func forward_spatial_gui_input(camera, event):
 		undo_redo.add_do_reference(new_item)
 		undo_redo.add_undo_method(get_editor_interface().get_edited_scene_root(), "remove_child", new_item)
 		undo_redo.commit_action()
-	pass
+		return true
+	elif event is InputEventMouse and event.button_index == BUTTON_WHEEL_DOWN:
+		if Input.is_key_pressed(KEY_SHIFT):
+			return false
+		current_item.scale = current_item.scale * 0.9
+		return true
+	elif event is InputEventMouse and event.button_index == BUTTON_WHEEL_UP:
+		if Input.is_key_pressed(KEY_SHIFT):
+			return false
+		current_item.scale = current_item.scale * 1.1
+		return true
+	return false
+	
 
 func handles(object):
 	return true
@@ -86,7 +124,10 @@ func add_temp_item(resource):
 	return new_item
 
 func redo_paint(new_item, transform):
-	get_editor_interface().get_edited_scene_root().add_child(new_item)
+	if parent_node == null:
+		parent_node = get_editor_interface().get_edited_scene_root()
+	parent_node.add_child(new_item)
 	new_item.owner = get_editor_interface().get_edited_scene_root()
 	new_item.transform.origin = transform.origin
+	new_item.transform.basis = transform.basis
 	

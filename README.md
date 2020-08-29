@@ -9,6 +9,10 @@ Toggle painting using the "Paint" button in the toolbar above the viewport.
 
 Click to place.
 
+Click, hold and move the mouse to rotate the object. Release to place.
+
+Scroll to resize. Hold shift to zoom the viewport as normal instead.
+
 Undo and redo work.
 
 ## Installation
