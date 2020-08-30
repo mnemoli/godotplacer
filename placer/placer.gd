@@ -26,8 +26,10 @@ func _enter_tree():
 	get_editor_interface().get_selection().connect("selection_changed", self, "change_parent_node")
 	
 func change_parent_node():
-	parent_node = get_editor_interface().get_selection().get_selected_nodes()[0]
-	if parent_node == null:
+	var parent_nodes = get_editor_interface().get_selection().get_selected_nodes()
+	if !parent_nodes.empty():
+		parent_node = parent_nodes[0]
+	else:
 		parent_node = get_editor_interface().get_edited_scene_root()
 	print(parent_node)
 
