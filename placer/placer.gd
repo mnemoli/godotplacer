@@ -74,9 +74,9 @@ func forward_spatial_gui_input(camera, event):
 		var undo_redo = get_undo_redo()
 		undo_redo.create_action("Add object")
 		var new_item = resource.instance()
-		undo_redo.add_do_method(self, "redo_paint", new_item, current_item.transform)
+		undo_redo.add_do_method(self, "redo_paint", new_item, current_item.transform, parent_node)
 		undo_redo.add_do_reference(new_item)
-		undo_redo.add_undo_method(get_editor_interface().get_edited_scene_root(), "remove_child", new_item)
+		undo_redo.add_undo_method(parent_node, "remove_child", new_item)
 		undo_redo.commit_action()
 		return true
 	elif event is InputEventMouse and event.button_index == BUTTON_WHEEL_DOWN:
@@ -123,7 +123,7 @@ func add_temp_item(resource):
 				c.material_override = temp_object_mat
 	return new_item
 
-func redo_paint(new_item, transform):
+func redo_paint(new_item, transform, parent_node):
 	if parent_node == null:
 		parent_node = get_editor_interface().get_edited_scene_root()
 	parent_node.add_child(new_item)
