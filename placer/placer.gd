@@ -61,7 +61,7 @@ func forward_spatial_gui_input(camera, event):
 			var space_state =  get_viewport().world.direct_space_state
 			var hit = space_state.intersect_ray(ray_origin, ray_origin + ray_dir * ray_distance)
 			if !hit.empty():
-				current_item.transform.origin = hit.position
+				current_item.global_transform.origin = hit.position
 			return false
 		else:
 			current_item.rotate_object_local(Vector3(0,1,0), event.relative.x / 10)
@@ -74,7 +74,7 @@ func forward_spatial_gui_input(camera, event):
 		var undo_redo = get_undo_redo()
 		undo_redo.create_action("Add object")
 		var new_item = resource.instance()
-		undo_redo.add_do_method(self, "redo_paint", new_item, current_item.transform, parent_node)
+		undo_redo.add_do_method(self, "redo_paint", new_item, current_item.global_transform, parent_node)
 		undo_redo.add_do_reference(new_item)
 		undo_redo.add_undo_method(parent_node, "remove_child", new_item)
 		undo_redo.commit_action()
@@ -128,6 +128,6 @@ func redo_paint(new_item, transform, parent_node):
 		parent_node = get_editor_interface().get_edited_scene_root()
 	parent_node.add_child(new_item)
 	new_item.owner = get_editor_interface().get_edited_scene_root()
-	new_item.transform.origin = transform.origin
-	new_item.transform.basis = transform.basis
+	new_item.global_transform.origin = transform.origin
+	new_item.global_transform.basis = transform.basis
 	
